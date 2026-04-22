@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Catch the Stars PRO - Game Mamen</title>
+    <style>
+        body { 
+            margin: 0; padding: 0; overflow: hidden; 
+            background: #0D1B2A; 
+            transition: background 2s ease;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            touch-action: none; 
+            color: white;
+        }
+        #game-container { position: relative; width: 100vw; height: 100vh; }
+        
+        /* UI Elements */
+        #ui-layer { position: absolute; top: 40px; width: 100%; text-align: center; pointer-events: none; }
+        #score { font-size: 80px; font-weight: 900; margin: 0; text-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        #level-info { font-size: 20px; color: #FFEB3B; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+        #combo-info { 
+            font-size: 24px; color: #FF9800; font-weight: bold; font-style: italic; 
+            display: none; transform: scale(1); transition: transform 0.1s;
+        }
+
+        /* Game Objects */
+        #basket { 
+            position: absolute; bottom: 80px; width: 100px; height: 60px; 
+            background: linear-gradient(to bottom, #8D6E63, #5D4037); 
+            border-radius: 10px 10px 25px 25px; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.6); 
+            transform: translateX(-50%);
+            display: flex; justify-content: center; align-items: center; font-size: 40px;
+            border: 2px solid #4E342E;
+        }
+        .star { position: absolute; font-size: 35px; color: yellow; text-shadow: 0 0 10px orange; }
+        .giant-star { font-size: 60px; text-shadow: 0 0 20px yellow; }
+        .bomb { font-size: 40px; text-shadow: 0 0 15px red; }
+
+        /* Screens */
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; text-align: center; z-index: 100;
+        }
+        #menu-screen { background: radial-gradient(circle, #1B263B 0%, #0D1B2A 100%); }
+        
+        button { 
+            padding: 18px 50px; font-size: 20px; background: #2196F3; color: white; 
+            border: none; border-radius: 50px; margin-top: 30px; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4); font-weight: bold;
+            text-transform: uppercase; transition: transform 0.2s;
+        }
+        button:active { transform: scale(0.9); }
+
+        /* Background Stars Animation */
+        .bg-star { position: absolute; background: white; border-radius: 50%; opacity: 0.3; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="ui-layer">
+        <div id="level-info">Level 1</div>
+        <h1 id="score">0</h1>
+        <div id="combo-info">COMBO X2!</div>
+    </div>
+
+    <div id="basket">🧺</div>
+    
+    <!-- Menu Utama -->
+    <div id="menu-screen" class="screen">
+        <h1 style="font-size: 40px; color: #FFEB3B; margin-bottom: 0;">CATCH THE STARS</h1>
+        <p style="color: #64B5F6; margin-top: 5px; letter-spacing: 3px;">GAMES MAMEN PRO</p>
+        <div style="font-size: 60px; margin: 30px 0;">⭐</div>
+        <p id="high-score-text">Skor Terbaik: 0</p>
+        <button onclick="startGame()">Mulai Main</button>
+    </div>
+
+    <!-- Game Over -->
+    <div id="game-over-screen" class="screen" style="display: none;">
+        <h1 style="color: #F44336; font-size: 45px;">YAH KEPLESET!</h1>
+        <p id="final-score" style="font-size: 24px; color: white;"></p>
+        <button onclick="startGame()">Main Lagi</button>
+        <button onclick="showMenu()" style="background: #546E7A; margin-top: 15px;">Kembali ke Menu</button>
+    </div>
+</div>
+
+<script>
+    const container = document.getElementById('game-container');
+    const basket = document.getElementById('basket');
+    const scoreElement = document.getElementById('score');
+    const levelElement = document.getElementById('level-info');
+    const comboElement = document.getElementById('combo-info');
+    const menuScreen = document.getElementById('menu-screen');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const finalScoreElement = document.getElementById('final-score');
+    const highScoreText = document.getElementById('high-score-text');
+
+    let score = 0;
+    let highScore = localStorage.getItem('catchStarsHighScore') || 0;
+    let level = 1;
+    let combo = 0;
+    let isGameOver = true;
+    let basketX = window.innerWidth / 2;
+    let stars = [];
+    let speed = 4;
+    let spawnRate = 1000;
+
+    const levelColors = [
+        '#0D1B2A', // Level 1: Night
+        '#1B263B', // Level 2: Deep Blue
+        '#2C3E50', // Level 3: Ocean
+        '#4B0082', // Level 4: Space
+        '#E65100'  // Level 5: Sunset
+    ];
+
+    highScoreText.innerHTML = 'Skor Terbaik: ' + highScore;
+
+    // Background Stars
+    for (let i = 0; i < 50; i++) {
+        const bgStar = document.createElement('div');
+        bgStar.className = 'bg-star';
+        let size = Math.random() * 3;
+        bgStar.style.width = size + 'px';
+        bgStar.style.height = size + 'px';
+        bgStar.style.left = Math.random() * 100 + 'vw';
+        bgStar.style.top = Math.random() * 100 + 'vh';
+        container.appendChild(bgStar);
+    }
+
+    // Gerakkan keranjang (Touch untuk Android)
+    container.addEventListener('touchmove', (e) => {
+        if (isGameOver) return;
+        basketX = e.touches[0].clientX;
+        if (basketX < 50) basketX = 50;
+        if (basketX > window.innerWidth - 50) basketX = window.innerWidth - 50;
+        basket.style.left = basketX + 'px';
+    });
+
+    function showMenu() {
+        isGameOver = true;
+        menuScreen.style.display = 'flex';
+        gameOverScreen.style.display = 'none';
+        highScoreText.innerHTML = 'Skor Terbaik: ' + highScore;
+    }
+
+    function startGame() {
+        score = 0;
+        level = 1;
+        combo = 0;
+        speed = 5;
+        spawnRate = 1000;
+        isGameOver = false;
+        
+        scoreElement.innerHTML = '0';
+        levelElement.innerHTML = 'Level 1';
+        comboElement.style.display = 'none';
+        document.body.style.background = levelColors[0];
+        
+        menuScreen.style.display = 'none';
+        gameOverScreen.style.display = 'none';
+        
+        // Bersihkan bintang lama
+        stars.forEach(s => s.element.remove());
+        stars = [];
+        
+        spawnLoop();
+        gameLoop();
+    }
+
+    function spawnLoop() {
+        if (isGameOver) return;
+        createObject();
+        setTimeout(spawnLoop, Math.random() * spawnRate + 300);
+    }
+
+    function createObject() {
+        const obj = document.createElement('div');
+        let type = 'star';
+        let rand = Math.random();
+        
+        if (rand < 0.1) {
+            type = 'giant';
+            obj.className = 'star giant-star';
+            obj.innerHTML = '🌟';
+        } else if (rand < 0.25) {
+            type = 'bomb';
+            obj.className = 'star bomb';
+            obj.innerHTML = '⚡';
+        } else {
+            obj.className = 'star';
+            obj.innerHTML = '⭐';
+        }
+
+        obj.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+        obj.style.top = '-60px';
+        container.appendChild(obj);
+        stars.push({ element: obj, top: -60, type: type });
+    }
+
+    function gameLoop() {
+        if (isGameOver) return;
+
+        for (let i = 0; i < stars.length; i++) {
+            let s = stars[i];
+            s.top += speed;
+            s.element.style.top = s.top + 'px';
+
+            let starRect = s.element.getBoundingClientRect();
+            let basketRect = basket.getBoundingClientRect();
+
+            // Cek Tabrakan
+            if (starRect.bottom >= basketRect.top && 
+                starRect.right >= basketRect.left && 
+                starRect.left <= basketRect.right &&
+                starRect.top <= basketRect.bottom) {
+                
+                if (s.type === 'bomb') {
+                    endGame('KENA PETIR! ADUH!');
+                    return;
+                }
+
+                // Berhasil nangkep!
+                if (window.navigator.vibrate) window.navigator.vibrate(50);
+                
+                combo++;
+                let points = (s.type === 'giant') ? 5 : 1;
+                let comboBonus = (combo > 5) ? 2 : 1;
+                score += points * comboBonus;
+                
+                scoreElement.innerHTML = score;
+                
+                // Update UI Combo
+                if (combo > 1) {
+                    comboElement.innerHTML = 'COMBO X' + combo + '!';
+                    comboElement.style.display = 'block';
+                    comboElement.style.transform = 'scale(1.2)';
+                    setTimeout(() => comboElement.style.transform = 'scale(1)', 100);
+                }
+
+                // Level Up?
+                if (score >= level * 20 && level < 5) {
+                    level++;
+                    levelElement.innerHTML = 'Level ' + level;
+                    document.body.style.background = levelColors[level-1];
+                    speed += 1;
+                    spawnRate = Math.max(400, spawnRate - 100);
+                    if (window.navigator.vibrate) window.navigator.vibrate([100, 50, 100]);
+                }
+
+                s.element.remove();
+                stars.splice(i, 1);
+                i--;
+                continue;
+            }
+
+            // Lepas ke bawah
+            if (s.top > window.innerHeight) {
+                if (s.type !== 'bomb') {
+                    endGame('BINTANGNYA LEPAS, MAMEN!');
+                    return;
+                }
+                s.element.remove();
+                stars.splice(i, 1);
+                i--;
+            }
+        }
+        requestAnimationFrame(gameLoop);
+    }
+
+    function endGame(msg) {
+        isGameOver = true;
+        if (window.navigator.vibrate) window.navigator.vibrate(300);
+        
+        gameOverScreen.style.display = 'flex';
+        finalScoreElement.innerHTML = msg + '<br>Skor Kamu: ' + score;
+        
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('catchStarsHighScore', highScore);
+        }
+    }
+
+</script>
+
+</body>
+</html>

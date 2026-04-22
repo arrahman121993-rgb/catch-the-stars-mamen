@@ -1,0 +1,39 @@
+name: Build APK Mamen
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: # Biar bisa dijalankan manual kalau mau
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.3' # Versi stable yang oke
+          channel: 'stable'
+
+      - name: Ambil Bahan (Get dependencies)
+        run: flutter pub get
+
+      - name: Rakit APK (Build APK)
+        run: flutter build apk --release
+
+      - name: Kirim Hasil APK (Upload Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-mamen-pro-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
