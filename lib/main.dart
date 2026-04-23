@@ -47,18 +47,34 @@ class _AdPlayerHomePageState extends State<AdPlayerHomePage> {
   bool _isBannerLoaded = false;
   late SharedPreferences _prefs;
 
-  // Test ID AdMob
-  final String bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
-  final String interstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712';
-  final String rewardedAdUnitId = 'ca-app-pub-3940256099942544/5224354917';
+  // ============================================================
+  // BAGIAN ID IKLAN (GANTI DENGAN ID ASLI DARI ADMOB MAMEN)
+  // ============================================================
+  final String bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111'; 
+  final String interstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712'; 
+  final String rewardedAdUnitId = 'ca-app-pub-2985057151578238/4557750778'; // ID ASLI MAMEN SUDAH TERPASANG!
+
+  // MASUKKAN ID HP MAMEN DI SINI (Supaya mamen aman dari Banned)
+  final List<String> testDeviceIds = [""]; 
+  // ============================================================
 
   @override
   void initState() {
     super.initState();
+    _initAdMob();
     _initData();
     _loadBannerAd();
     _loadInterstitialAd();
     _loadRewardedAd();
+
+    // Print pesan bantuan di log buat cari Device ID mamen
+    print("MAMEN INFO: Cari tulisan 'Test Device ID' di bawah ini buat didaftarkan!");
+  }
+
+  void _initAdMob() {
+    // Konfigurasi supaya HP mamen dianggap perangkat penguji
+    RequestConfiguration configuration = RequestConfiguration(testDeviceIds: testDeviceIds);
+    MobileAds.instance.updateRequestConfiguration(configuration);
   }
 
   Future<void> _initData() async {
