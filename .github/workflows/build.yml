@@ -29,8 +29,11 @@ jobs:
       - name: Ambil Bahan (Get dependencies)
         run: flutter pub get
 
+      - name: Bersihkan Cache (Clean up)
+        run: flutter clean
+
       - name: Rakit APK (Build APK)
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Kirim Hasil APK (Upload Artifact)
         uses: actions/upload-artifact@v4
