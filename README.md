@@ -1,17 +1,19 @@
-# catch_the_stars
+# 🌟 Catch The Stars Mamen 🌟
 
-A new Flutter project.
+Game seru buat mamen-mamen semua! Sekarang sudah pakai ID Iklan asli.
 
-## Getting Started
+## 📥 Cara Download APK
+Untuk mamen yang mau coba main, bisa download APK terbarunya di sini:
+1. Buka halaman GitHub ini: [https://github.com/arrahman121993-rgb/catch-the-stars-mamen](https://github.com/arrahman121993-rgb/catch-the-stars-mamen)
+2. Klik tab **Actions** di bagian atas.
+3. Pilih hasil pengerjaan (workflow run) yang paling atas.
+4. Scroll ke bawah ke bagian **Artifacts**.
+5. Klik **game-mamen-pro-apk** untuk download.
 
-This project is a starting point for a Flutter application.
+## 🛠️ Status AdMob
+- **App ID:** Terpasang ✅
+- **Ads Status:** Production (Real IDs) ✅
+- **app-ads.txt:** Tersedia ✅
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+---
+*Dibuat dengan ❤️ oleh Mamen*
