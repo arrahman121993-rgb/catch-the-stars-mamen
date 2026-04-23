@@ -4,10 +4,10 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         
-        <!-- ADMOB APP ID TEST -->
+        <!-- ADMOB APP ID ASLI MAMEN -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-2985057151578238~2768456141"/>
 
         <activity
             android:name=".MainActivity"

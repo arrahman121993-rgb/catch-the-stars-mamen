@@ -50,10 +50,9 @@ class _AdPlayerHomePageState extends State<AdPlayerHomePage> {
   // ============================================================
   // BAGIAN ID IKLAN (GANTI DENGAN ID ASLI DARI ADMOB MAMEN)
   // ============================================================
-  final String bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111'; 
-  final String interstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712'; 
+  final String bannerAdUnitId = 'ca-app-pub-2985057151578238/7174605014';
+  final String interstitialAdUnitId = 'ca-app-pub-2985057151578238/7012635095';
   final String rewardedAdUnitId = 'ca-app-pub-2985057151578238/4557750778'; // ID ASLI MAMEN SUDAH TERPASANG!
-
   // MASUKKAN ID HP MAMEN DI SINI (Supaya mamen aman dari Banned)
   final List<String> testDeviceIds = [""]; 
   // ============================================================
