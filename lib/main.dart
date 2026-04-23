@@ -1,5 +1,3 @@
-import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,127 +5,84 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
-  runApp(const CatchTheStarsApp());
+  runApp(const AdPlayerApp());
 }
 
-class CatchTheStarsApp extends StatelessWidget {
-  const CatchTheStarsApp({super.key});
+class AdPlayerApp extends StatelessWidget {
+  const AdPlayerApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Catch the Stars',
+      title: 'Mamen Premium Ad Player',
       theme: ThemeData(
-        brightness: Brightness.dark,
-        primarySwatch: Colors.indigo,
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.amber,
+          brightness: Brightness.dark,
+        ),
+        textTheme: const TextTheme(
+          headlineMedium: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber),
+        ),
       ),
-      home: const GamePage(),
+      home: const AdPlayerHomePage(),
     );
   }
 }
 
-class FallingObject {
-  Offset position;
-  final String type; // 'star', 'giant', 'bomb', 'magnet', 'shield'
-  final double speedMult;
-  
-  FallingObject({required this.position, required this.type, required this.speedMult});
-}
-
-enum GameStatus { menu, playing, gameOver }
-
-class GamePage extends StatefulWidget {
-  const GamePage({super.key});
+class AdPlayerHomePage extends StatefulWidget {
+  const AdPlayerHomePage({super.key});
 
   @override
-  State<GamePage> createState() => _GamePageState();
+  State<AdPlayerHomePage> createState() => _AdPlayerHomePageState();
 }
 
-import 'package:flutter/services.dart';
-
-// ... (rest of imports)
-
-class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
-  // --- GAME LOGIC ---
-  GameStatus status = GameStatus.menu;
-  double basketX = 0.5;
-  List<FallingObject> fallingObjects = [];
-  List<Offset> caughtEffects = [];
-  int score = 0;
-  int highScore = 0;
-  int level = 1;
-  int combo = 0;
-  double comboOpacity = 0.0;
-  late Timer gameTimer;
-  final Random random = Random();
-  double gameSpeed = 0.015;
-  
-  // Power-up States
-  bool isMagnetActive = false;
-  bool isShieldActive = false;
-  int magnetTimeLeft = 0;
-  Timer? magnetTimer;
-
-  // Audio Player
-  final AudioPlayer _audioPlayer = AudioPlayer();
-
-  final List<Offset> bgStars = List.generate(100, (index) => Offset(Random().nextDouble(), Random().nextDouble()));
-
-  // Dynamic Background Colors
-  final List<List<Color>> levelColors = [
-    [const Color(0xFF0D1B2A), const Color(0xFF1B263B), const Color(0xFF415A77)], // Level 1: Night
-    [const Color(0xFF1A1A2E), const Color(0xFF16213E), const Color(0xFF0F3460)], // Level 2: Deep Blue
-    [const Color(0xFF2C3E50), const Color(0xFF4CA1AF)], // Level 3: Ocean
-    [const Color(0xFF4B0082), const Color(0xFF000000)], // Level 4: Space
-    [const Color(0xFFFF5F6D), const Color(0xFFFFC371)], // Level 5: Sunset
-  ];
-
-  // --- ADMOB ---
+class _AdPlayerHomePageState extends State<AdPlayerHomePage> {
   BannerAd? _bannerAd;
-  bool _isBannerAdReady = false;
   InterstitialAd? _interstitialAd;
   RewardedAd? _rewardedAd;
+  
+  int _rewardScore = 0;
+  bool _isBannerLoaded = false;
+  late SharedPreferences _prefs;
 
-  final String bannerAdUnitId = 'ca-app-pub-2985057151578238/7174605014';
-  final String interstitialAdUnitId = 'ca-app-pub-2985057151578238/7012635095';
-  final String rewardedAdUnitId = 'ca-app-pub-3940256099942544/5224354917'; // Masih Test ID
+  // Test ID AdMob
+  final String bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
+  final String interstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712';
+  final String rewardedAdUnitId = 'ca-app-pub-3940256099942544/5224354917';
 
   @override
   void initState() {
     super.initState();
-    _loadHighScore();
+    _initData();
     _loadBannerAd();
     _loadInterstitialAd();
     _loadRewardedAd();
   }
 
-  void _loadHighScore() async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _initData() async {
+    _prefs = await SharedPreferences.getInstance();
     setState(() {
-      highScore = prefs.getInt('highScore') ?? 0;
+      _rewardScore = _prefs.getInt('mamen_points') ?? 0;
     });
   }
 
-  void _saveHighScore() async {
-    if (score > highScore) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('highScore', score);
-      setState(() {
-        highScore = score;
-      });
-    }
+  Future<void> _savePoints() async {
+    await _prefs.setInt('mamen_points', _rewardScore);
   }
 
-  // --- ADMOB METHODS ---
   void _loadBannerAd() {
     _bannerAd = BannerAd(
       adUnitId: bannerAdUnitId,
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
-        onAdLoaded: (_) => setState(() => _isBannerAdReady = true),
-        onAdFailedToLoad: (ad, err) => ad.dispose(),
+        onAdLoaded: (_) => setState(() => _isBannerLoaded = true),
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+          print('Banner Ad failed: $err');
+        },
       ),
     )..load();
   }
@@ -138,7 +93,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) => _interstitialAd = ad,
-        onAdFailedToLoad: (err) {},
+        onAdFailedToLoad: (err) => print('InterstitialAd failed: $err'),
       ),
     );
   }
@@ -146,6 +101,10 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   void _showInterstitialAd() {
     if (_interstitialAd != null) {
       _interstitialAd!.show();
+      _interstitialAd = null;
+      _loadInterstitialAd();
+    } else {
+      _showSnackBar('Iklan belum siap, mamen! Tunggu bentar...');
       _loadInterstitialAd();
     }
   }
@@ -156,7 +115,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) => _rewardedAd = ad,
-        onAdFailedToLoad: (err) => _rewardedAd = null,
+        onAdFailedToLoad: (err) => print('RewardedAd failed: $err'),
       ),
     );
   }
@@ -166,248 +125,165 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
       _rewardedAd!.show(
         onUserEarnedReward: (ad, reward) {
           setState(() {
-            status = GameStatus.playing;
-            fallingObjects = [];
-            isShieldActive = true;
+            _rewardScore += reward.amount.toInt();
           });
-          gameTimer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
-            if (status == GameStatus.playing) updateGame();
-          });
-          _loadRewardedAd();
+          _savePoints();
+          _showSnackBar('Mantap mamen! +${reward.amount} Poin Emas!');
         },
       );
+      _rewardedAd = null;
+      _loadRewardedAd();
+    } else {
+      _showSnackBar('Video belum siap, sabar ya mamen...');
+      _loadRewardedAd();
     }
   }
-      score = 0;
-      level = 1;
-      combo = 0;
-      comboOpacity = 0.0;
-      fallingObjects = [];
-      caughtEffects = [];
-      isMagnetActive = false;
-      isShieldActive = false;
-      magnetTimeLeft = 0;
-      basketX = 0.5;
-      gameSpeed = 0.015;
-    });
-    
-    gameTimer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
-      if (status == GameStatus.playing) {
-        updateGame();
-      } else {
-        timer.cancel();
-      }
-    });
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.amber.shade800,
+      ),
+    );
   }
 
-  void updateGame() {
-    setState(() {
-      // 1. Spawning
-      double chance = random.nextDouble();
-      if (chance < (0.05 + (score / 3000) + (level * 0.01))) {
-        double typeChance = random.nextDouble();
-        if (typeChance < 0.03) {
-          fallingObjects.add(FallingObject(position: Offset(random.nextDouble(), -0.1), type: 'shield', speedMult: 1.2));
-        } else if (typeChance < 0.07) {
-          fallingObjects.add(FallingObject(position: Offset(random.nextDouble(), -0.1), type: 'magnet', speedMult: 1.2));
-        } else if (typeChance < 0.12) {
-          fallingObjects.add(FallingObject(position: Offset(random.nextDouble(), -0.1), type: 'giant', speedMult: 1.8));
-        } else if (typeChance < 0.25) {
-          fallingObjects.add(FallingObject(position: Offset(random.nextDouble(), -0.1), type: 'bomb', speedMult: 1.4));
-        } else {
-          fallingObjects.add(FallingObject(position: Offset(random.nextDouble(), -0.1), type: 'star', speedMult: 1.0));
-        }
-      }
-
-      gameSpeed = 0.015 + (score / 4000) + (level * 0.002);
-
-      // 2. Movement & Collision
-      List<FallingObject> nextObjects = [];
-      for (var obj in fallingObjects) {
-        double nextY = obj.position.dy + (gameSpeed * obj.speedMult);
-        double nextX = obj.position.dx;
-
-        if (isMagnetActive && (obj.type == 'star' || obj.type == 'giant')) {
-          if (nextX < basketX) nextX += 0.02;
-          if (nextX > basketX) nextX -= 0.02;
-        }
-        
-        if (nextY >= 0.85 && nextY <= 0.93) {
-          if ((nextX - basketX).abs() < 0.15) {
-            // BERHASIL NANGKAP!
-            HapticFeedback.lightImpact();
-            _playSfx('catch');
-
-            if (obj.type == 'bomb') {
-              if (isShieldActive) {
-                isShieldActive = false;
-                continue;
-              }
-              gameOver('KENA PETIR! ADUH!');
-              return;
-            } else if (obj.type == 'magnet') {
-              activateMagnet();
-              continue;
-            } else if (obj.type == 'shield') {
-              isShieldActive = true;
-              continue;
-            } else {
-              // Skor + Combo
-              combo++;
-              int points = (obj.type == 'giant') ? 10 : 1;
-              score += points * (combo > 5 ? 2 : 1); // Bonus x2 kalo combo > 5
-              
-              if (score >= level * 20 && level < 5) {
-                level++;
-                HapticFeedback.vibrate();
-              }
-
-              caughtEffects.add(Offset(nextX, 0.85));
-              Timer(const Duration(milliseconds: 500), () {
-                if (mounted) setState(() => caughtEffects.remove(Offset(nextX, 0.85)));
-              });
-              continue;
-            }
-          }
-        }
-
-        if (nextY > 1.0) {
-          if (obj.type != 'bomb' && obj.type != 'magnet' && obj.type != 'shield') {
-            gameOver('BINTANGNYA LEPAS, MAMEN!');
-            _playSfx('fail');
-            HapticFeedback.heavyImpact();
-            return;
-          }
-          continue;
-        }
-        
-        obj.position = Offset(nextX, nextY);
-        nextObjects.add(obj);
-      }
-      fallingObjects = nextObjects;
-    });
-  }
-
-  void gameOver(String msg) {
-    gameTimer.cancel();
-    magnetTimer?.cancel();
-    _saveHighScore();
-    setState(() {
-      status = GameStatus.gameOver;
-      combo = 0;
-    });
-    _showInterstitialAd();
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    _interstitialAd?.dispose();
+    _rewardedAd?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Dynamic Background
-          AnimatedContainer(
-            duration: const Duration(seconds: 2),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: levelColors[level - 1],
-              ),
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.black, Colors.grey.shade900, Colors.deepPurple.shade900],
           ),
-          
-          // ... (bg stars - same)
-
-          if (status == GameStatus.menu) _buildMainMenu(),
-          if (status == GameStatus.playing) ..._buildGameplay(),
-          if (status == GameStatus.gameOver) _buildGameOver(),
-
-          // ... (banner - same)
-        ],
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 40),
+              const Text(
+                'MAMEN PREMIUM',
+                style: TextStyle(
+                  fontSize: 18,
+                  letterSpacing: 4,
+                  fontWeight: FontWeight.w300,
+                  color: Colors.amber,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.amber.withOpacity(0.3),
+                      blurRadius: 40,
+                      spreadRadius: 10,
+                    ),
+                  ],
+                  border: Border.all(color: Colors.amber, width: 2),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.stars, size: 60, color: Colors.amber),
+                    Text(
+                      '$_rewardScore',
+                      style: const TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const Text('POIN EMAS', style: TextStyle(color: Colors.amber)),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Card(
+                  color: Colors.white.withOpacity(0.1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        _buildMenuButton(
+                          onPressed: _showInterstitialAd,
+                          icon: Icons.fullscreen_rounded,
+                          label: 'PUTAR IKLAN CEPAT',
+                          color: Colors.blueAccent,
+                        ),
+                        const SizedBox(height: 15),
+                        _buildMenuButton(
+                          onPressed: _showRewardedAd,
+                          icon: Icons.play_circle_filled_rounded,
+                          label: 'TONTON VIDEO EMAS',
+                          color: Colors.amber,
+                          isLarge: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+              if (_isBannerLoaded)
+                Container(
+                  alignment: Alignment.bottomCenter,
+                  width: _bannerAd!.size.width.toDouble(),
+                  height: _bannerAd!.size.height.toDouble(),
+                  child: AdWidget(ad: _bannerAd!),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  List<Widget> _buildGameplay() {
-    return [
-      // UI Skor & Level
-      Positioned(
-        top: 50,
-        left: 0,
-        right: 0,
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('LV. $level', style: TextStyle(color: Colors.yellowAccent.withOpacity(0.8), fontSize: 24, fontWeight: FontWeight.bold)),
-                const SizedBox(width: 20),
-                Text('$score', style: const TextStyle(color: Colors.white, fontSize: 80, fontWeight: FontWeight.w900)),
-              ],
-            ),
-            if (combo > 1)
-              AnimatedOpacity(
-                opacity: 1.0,
-                duration: const Duration(milliseconds: 300),
-                child: Text('COMBO X$combo!', style: const TextStyle(color: Colors.orangeAccent, fontSize: 24, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic)),
-              ),
-          ],
+  Widget _buildMenuButton({
+    required VoidCallback onPressed,
+    required IconData icon,
+    required String label,
+    required Color color,
+    bool isLarge = false,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: isLarge ? 65 : 55,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: isLarge ? 30 : 24),
+        label: Text(
+          label,
+          style: TextStyle(
+            fontSize: isLarge ? 18 : 16,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
         ),
-      ),
-      
-      // ... (Rest of objects, power-ups, basket - same as before but status-aware)
-    ];
-  }
-
-
-  Widget _buildGameOver() {
-    return Container(
-      color: Colors.black.withOpacity(0.9),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('YAH KEPLESET!', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            Text('SKOR: $score', style: const TextStyle(color: Colors.yellow, fontSize: 50, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: startGame,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigoAccent, padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15)),
-              child: const Text('MAIN LAGI', style: TextStyle(fontSize: 20, color: Colors.white)),
-            ),
-            const SizedBox(height: 10),
-            if (_rewardedAd != null)
-              ElevatedButton.icon(
-                onPressed: _showRewardedAd,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('NONTON VIDEO BUAT LANJUT', style: TextStyle(fontSize: 18)),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent, foregroundColor: Colors.black),
-              ),
-            TextButton(
-              onPressed: () => setState(() => status = GameStatus.menu),
-              child: const Text('KEMBALI KE MENU', style: TextStyle(color: Colors.white70)),
-            ),
-          ],
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: color == Colors.amber ? Colors.black : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          elevation: 5,
         ),
-      ),
-    );
-  }
-}
-
-
-          // Banner
-          if (_isBannerAdReady)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                color: Colors.black,
-                width: _bannerAd!.size.width.toDouble(),
-                height: _bannerAd!.size.height.toDouble(),
-                child: AdWidget(ad: _bannerAd!),
-              ),
-            ),
-        ],
       ),
     );
   }
