@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'ads_config.dart';
+import 'snake_game.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +18,7 @@ class AdPlayerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Mamen Premium Ad Player',
+      title: 'Mamen Premium Player',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -46,9 +47,6 @@ class _AdPlayerHomePageState extends State<AdPlayerHomePage> {
   bool _isBannerLoaded = false;
   late SharedPreferences _prefs;
 
-  // ============================================================
-  // LOGIC ID IKLAN (OTOMATIS TEST ID KALAU DEBUG)
-  // ============================================================
   final String bannerAdUnitId = kDebugMode 
       ? 'ca-app-pub-3940256099942544/6300978111' 
       : AdsConfig.bannerId;
@@ -60,7 +58,6 @@ class _AdPlayerHomePageState extends State<AdPlayerHomePage> {
   final String rewardedAdUnitId = kDebugMode 
       ? 'ca-app-pub-3940256099942544/5224354917' 
       : AdsConfig.rewardedId;
-  // ============================================================
 
   @override
   void initState() {
@@ -166,45 +163,90 @@ class _AdPlayerHomePageState extends State<AdPlayerHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('MAMEN AD PLAYER'),
-        actions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 20),
-              child: Text(
-                'Poin: $_rewardScore',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.black, Colors.grey.shade900],
           ),
-        ],
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton.icon(
-              onPressed: _showInterstitialAd,
-              icon: const Icon(Icons.ads_click),
-              label: const Text('Tampilkan Interstitial'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _showRewardedAd,
-              icon: const Icon(Icons.video_library),
-              label: const Text('Tonton Video Reward'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black),
-            ),
-            const Spacer(),
-            if (_isBannerLoaded)
-              SizedBox(
-                width: _bannerAd!.size.width.toDouble(),
-                height: _bannerAd!.size.height.toDouble(),
-                child: AdWidget(ad: _bannerAd!),
-              ),
-          ],
         ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 30),
+              const Text(
+                'MAMEN CENTER',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.amber, letterSpacing: 5),
+              ),
+              const SizedBox(height: 20),
+              CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.amber.withOpacity(0.1),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.stars, color: Colors.amber, size: 30),
+                    Text('$_rewardScore', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 40),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: ListView(
+                    children: [
+                      _buildBigButton(
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const SnakeGamePage()));
+                        },
+                        icon: Icons.videogame_asset_rounded,
+                        label: 'MAIN GAME ULAR NEON',
+                        color: Colors.greenAccent,
+                      ),
+                      const SizedBox(height: 15),
+                      _buildBigButton(
+                        onPressed: _showInterstitialAd,
+                        icon: Icons.ads_click,
+                        label: 'IKLAN INTERSTITIAL',
+                        color: Colors.blueAccent,
+                      ),
+                      const SizedBox(height: 15),
+                      _buildBigButton(
+                        onPressed: _showRewardedAd,
+                        icon: Icons.play_circle_fill,
+                        label: 'TONTON VIDEO POIN',
+                        color: Colors.amber,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_isBannerLoaded)
+                SizedBox(
+                  width: _bannerAd!.size.width.toDouble(),
+                  height: _bannerAd!.size.height.toDouble(),
+                  child: AdWidget(ad: _bannerAd!),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBigButton({required VoidCallback onPressed, required IconData icon, required String label, required Color color}) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 28),
+      label: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withOpacity(0.2),
+        foregroundColor: color,
+        side: BorderSide(color: color, width: 2),
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       ),
     );
   }
