@@ -1,2 +1,23 @@
 .npm/
 .gemini/
+
+# AdMob Config (Rahasia Mamen)
+lib/ads_config.dart
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Android
+android/local.properties
+android/app/src/main/res/values/strings.xml
+.gradle/
+captures/
+**/build/
+*.iml
+.idea/

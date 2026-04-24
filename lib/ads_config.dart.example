@@ -1,0 +1,6 @@
+class AdsConfig {
+  static const String appId = 'ISI_APP_ID_DISINI';
+  static const String bannerId = 'ISI_BANNER_ID_DISINI';
+  static const String interstitialId = 'ISI_INTERSTITIAL_ID_DISINI';
+  static const String rewardedId = 'ISI_REWARDED_ID_DISINI';
+}

@@ -29,6 +29,9 @@ jobs:
       - name: Ambil Bahan (Get dependencies)
         run: flutter pub get
 
+      - name: Buat Config Dummy (Biar Build Gak Error)
+        run: cp lib/ads_config.dart.example lib/ads_config.dart
+
       - name: Bersihkan Cache (Clean up)
         run: flutter clean
 
