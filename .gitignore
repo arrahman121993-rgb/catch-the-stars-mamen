@@ -1,6 +1,9 @@
 .npm/
 .gemini/
 
+# Termux storage
+storage/
+
 # AdMob Config (Rahasia Mamen)
 lib/ads_config.dart
 
